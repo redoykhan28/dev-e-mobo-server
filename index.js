@@ -3,6 +3,8 @@ const app = express()
 const cors = require('cors')
 require('dotenv').config()
 const port = process.env.PORT || 5000
+const { MongoClient, ServerApiVersion } = require('mongodb');
+
 
 // middle ware 
 app.use(cors())
@@ -14,6 +16,44 @@ app.get('/', (req, res) => {
     res.send('E-Mobo server is running')
 
 })
+
+//start using mongoDb
+
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.ytkvvxy.mongodb.net/?retryWrites=true&w=majority`;
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+async function run() {
+
+    try {
+
+        //create collection for categories
+        const categoriesCollection = client.db('E-mobo-Db').collection('categories')
+
+        //get all categories
+        app.get('/categories/all', async (req, res) => {
+
+            const query = {}
+            const result = await categoriesCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        //get all categories
+        app.get('/categories/limit', async (req, res) => {
+
+            const query = {}
+            const result = await categoriesCollection.find(query).limit(3).toArray()
+            res.send(result)
+        })
+
+    }
+    finally {
+
+    }
+}
+
+run().catch(console.dir)
+
+
 
 app.listen(port, () => {
 
