@@ -29,6 +29,18 @@ async function run() {
         //create collection for categories
         const categoriesCollection = client.db('E-mobo-Db').collection('categories')
 
+        //create database for products
+        const productsCollection = client.db('E-mobo-Db').collection('products')
+
+
+        //post product by buyer
+        app.post('/products', async (req, res) => {
+
+            const product = req.body
+            const result = await productsCollection.insertOne(product);
+            res.send(result)
+        })
+
         //get all categories
         app.get('/categories/all', async (req, res) => {
 
@@ -42,6 +54,14 @@ async function run() {
 
             const query = {}
             const result = await categoriesCollection.find(query).limit(3).toArray()
+            res.send(result)
+        })
+
+        //get categories name
+        app.get('/categories/name', async (req, res) => {
+
+            const query = {};
+            const result = await categoriesCollection.find(query).project({ name: 1 }).toArray()
             res.send(result)
         })
 
