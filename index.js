@@ -53,7 +53,7 @@ async function run() {
         app.get('/categories/limit', async (req, res) => {
 
             const query = {}
-            const result = await categoriesCollection.find(query).limit(3).toArray()
+            const result = await categoriesCollection.find(query).sort({ _id: -1 }).limit(3).toArray()
             res.send(result)
         })
 
@@ -70,7 +70,7 @@ async function run() {
 
             const name = req.params.name
             const query = { category: name }
-            const result = await productsCollection.find(query).toArray()
+            const result = await productsCollection.find(query).sort({ _id: -1 }).toArray()
             res.send(result)
         })
 
