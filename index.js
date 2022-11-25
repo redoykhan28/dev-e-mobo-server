@@ -35,6 +35,17 @@ async function run() {
         //create database for products booking
         const bookingsCollection = client.db('E-mobo-Db').collection('bookings')
 
+        //create database for products booking
+        const usersCollection = client.db('E-mobo-Db').collection('users')
+
+        //post user
+        app.post('/user', async (req, res) => {
+
+            const user = req.body;
+            const result = await usersCollection.insertOne(user)
+            res.send(result)
+
+        })
 
         //post product by buyer
         app.post('/products', async (req, res) => {
@@ -51,6 +62,21 @@ async function run() {
             const result = await bookingsCollection.insertOne(booking)
             res.send(result)
         })
+
+
+
+        //get jwt by user email
+        app.get('/jwt', async (req, res) => {
+
+            const email = req.query.email
+            const query = { email: email }
+            const user = await usersCollection.findOne(query)
+
+            if (user) {
+
+            }
+        })
+
 
         //get all categories
         app.get('/categories/all', async (req, res) => {
