@@ -50,7 +50,7 @@ async function run() {
         })
 
         //get all categories
-        app.get('/categories/limit', async (req, res) => {
+        app.get('/limitCategory/limit', async (req, res) => {
 
             const query = {}
             const result = await categoriesCollection.find(query).sort({ _id: -1 }).limit(3).toArray()
@@ -58,7 +58,7 @@ async function run() {
         })
 
         //get categories name
-        app.get('/categories/name', async (req, res) => {
+        app.get('/categories/cat-name', async (req, res) => {
 
             const query = {};
             const result = await categoriesCollection.find(query).project({ name: 1 }).toArray()
