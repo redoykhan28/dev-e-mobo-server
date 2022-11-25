@@ -32,12 +32,23 @@ async function run() {
         //create database for products
         const productsCollection = client.db('E-mobo-Db').collection('products')
 
+        //create database for products booking
+        const bookingsCollection = client.db('E-mobo-Db').collection('bookings')
+
 
         //post product by buyer
         app.post('/products', async (req, res) => {
 
             const product = req.body
             const result = await productsCollection.insertOne(product);
+            res.send(result)
+        })
+
+        //booked product by user
+        app.post('/booking', async (req, res) => {
+
+            const booking = req.body
+            const result = await bookingsCollection.insertOne(booking)
             res.send(result)
         })
 
