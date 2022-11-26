@@ -99,13 +99,12 @@ async function run() {
         })
 
         //booked product by user
-        app.post('/booking', async (req, res) => {
+        app.post('/booking', jwtVerify, async (req, res) => {
 
             const booking = req.body
             const result = await bookingsCollection.insertOne(booking)
             res.send(result)
         })
-
 
 
         //get jwt by user email
@@ -135,6 +134,23 @@ async function run() {
             const query = { email: email }
             const seller = await usersCollection.findOne(query)
             res.send({ isSeller: seller?.role === 'Seller' })
+        })
+
+        //get all buyer user by role
+        app.get('/allbuyer', async (req, res) => {
+            const role = req.query.role;
+            const query = { role: role }
+            const result = await usersCollection.find(query).toArray()
+            res.send(result)
+        })
+
+
+        //get all seller user by role
+        app.get('/allseller', async (req, res) => {
+            const role = req.query.role;
+            const query = { role: role }
+            const result = await usersCollection.find(query).toArray()
+            res.send(result)
         })
 
 
@@ -169,6 +185,16 @@ async function run() {
             const query = { category: name }
             const result = await productsCollection.find(query).sort({ _id: -1 }).toArray()
             res.send(result)
+        })
+
+        //get all products under a seller
+        app.get('/myproducts', jwtVerify, verifySeller, async (req, res) => {
+
+            const email = req.query.email;
+            const query = { seller_email: email }
+            const result = await productsCollection.find(query).toArray()
+            res.send(result)
+
         })
 
         //get my booking my email
