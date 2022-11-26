@@ -65,6 +65,22 @@ async function run() {
         //create database for products booking
         const usersCollection = client.db('E-mobo-Db').collection('users')
 
+        //verfify seller
+        const verifySeller = async (req, res, next) => {
+
+            //verify
+            const decodedEmail = req.decoded.email
+            const sellerQuery = { email: decodedEmail }
+            const user = await usersCollection.findOne(sellerQuery)
+
+            if (user?.role !== 'Seller') {
+
+                return res.status(403).send('Forbbiden access')
+            }
+
+            next()
+        }
+
         //post user
         app.post('/user', async (req, res) => {
 
@@ -75,7 +91,7 @@ async function run() {
         })
 
         //post product by buyer
-        app.post('/products', async (req, res) => {
+        app.post('/products', jwtVerify, verifySeller, async (req, res) => {
 
             const product = req.body
             const result = await productsCollection.insertOne(product);
@@ -109,6 +125,16 @@ async function run() {
 
             res.status(403).send({ accessToken: '' })
 
+        })
+
+
+        //get seller user to authorized route
+        app.get('/user/seller/:email', async (req, res) => {
+
+            const email = req.params.email
+            const query = { email: email }
+            const seller = await usersCollection.findOne(query)
+            res.send({ isSeller: seller?.role === 'Seller' })
         })
 
 
