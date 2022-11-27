@@ -130,7 +130,7 @@ async function run() {
         })
 
         //booked product by buyer
-        app.post('/booking', jwtVerify, async (req, res) => {
+        app.post('/booking', jwtVerify, verifyBuyer, async (req, res) => {
 
             const booking = req.body
             const result = await bookingsCollection.insertOne(booking)
@@ -190,7 +190,7 @@ async function run() {
         app.get('/allbuyer', jwtVerify, verifyAdmin, async (req, res) => {
             const role = req.query.role;
             const query = { role: role }
-            const result = await usersCollection.find(query).toArray()
+            const result = await usersCollection.find(query).sort({ _id: -1 }).toArray()
             res.send(result)
         })
 
@@ -199,7 +199,7 @@ async function run() {
         app.get('/allseller', jwtVerify, verifyAdmin, async (req, res) => {
             const role = req.query.role;
             const query = { role: role }
-            const result = await usersCollection.find(query).toArray()
+            const result = await usersCollection.find(query).sort({ _id: -1 }).toArray()
             res.send(result)
         })
 
@@ -242,7 +242,7 @@ async function run() {
 
             const email = req.query.email;
             const query = { seller_email: email }
-            const result = await productsCollection.find(query).toArray()
+            const result = await productsCollection.find(query).sort({ _id: -1 }).toArray()
             res.send(result)
 
         })
@@ -250,16 +250,9 @@ async function run() {
         //get my booking my email
         app.get('/myBookings', jwtVerify, verifyBuyer, async (req, res) => {
 
-            const decodedEmail = req.decoded.email
             const email = req.query.email;
-
-            if (email !== decodedEmail) {
-
-                return res.status(403).send('Forbidden Access')
-            }
-
             const query = { purchase_userMail: email }
-            const result = await bookingsCollection.find(query).toArray()
+            const result = await bookingsCollection.find(query).sort({ _id: -1 }).toArray()
             res.send(result)
         })
 
@@ -298,11 +291,21 @@ async function run() {
             res.send(result)
         })
 
+        //delete user
         app.delete('/deleteUser/:id', jwtVerify, verifyAdmin, async (req, res) => {
 
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query)
+            res.send(result)
+        })
+
+        //delete product
+        app.delete('/deleteProduct/:id', jwtVerify, verifySeller, async (req, res) => {
+
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await productsCollection.deleteOne(query)
             res.send(result)
         })
 
