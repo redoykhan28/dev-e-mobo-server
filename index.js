@@ -4,7 +4,7 @@ const cors = require('cors')
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
 const port = process.env.PORT || 5000
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 
 // middle ware 
@@ -65,6 +65,22 @@ async function run() {
         //create database for products booking
         const usersCollection = client.db('E-mobo-Db').collection('users')
 
+        //verify admin
+        const verifyAdmin = async (req, res, next) => {
+
+            //verify
+            const decodedEmail = req.decoded.email;
+            const AdminQuery = { email: decodedEmail }
+            const user = await usersCollection.findOne(AdminQuery)
+
+            if (user?.role !== 'admin') {
+
+                return res.status(403).send('Forbidden Access');
+            }
+            next()
+
+        }
+
         //verfify seller
         const verifySeller = async (req, res, next) => {
 
@@ -81,6 +97,21 @@ async function run() {
             next()
         }
 
+        const verifyBuyer = async (req, res, next) => {
+
+            //verify
+            const decodedEmail = req.decoded.email
+            const sellerQuery = { email: decodedEmail }
+            const user = await usersCollection.findOne(sellerQuery)
+
+            if (user?.role !== 'Buyer') {
+
+                return res.status(403).send('Forbbiden access')
+            }
+
+            next()
+        }
+
         //post user
         app.post('/user', async (req, res) => {
 
@@ -90,7 +121,7 @@ async function run() {
 
         })
 
-        //post product by buyer
+        //post product by seller
         app.post('/products', jwtVerify, verifySeller, async (req, res) => {
 
             const product = req.body
@@ -98,7 +129,7 @@ async function run() {
             res.send(result)
         })
 
-        //booked product by user
+        //booked product by buyer
         app.post('/booking', jwtVerify, async (req, res) => {
 
             const booking = req.body
@@ -136,8 +167,27 @@ async function run() {
             res.send({ isSeller: seller?.role === 'Seller' })
         })
 
+        //get  buyer to authorized route
+        app.get('/user/buyer/:email', async (req, res) => {
+
+            const email = req.params.email
+            const query = { email: email }
+            const buyer = await usersCollection.findOne(query)
+            res.send({ isBuyer: buyer?.role === 'Buyer' })
+        })
+
+        //get admin user to authorized route
+        app.get('/user/admin/:email', async (req, res) => {
+
+            const email = req.params.email;
+            const query = { email: email }
+            const result = await usersCollection.findOne(query)
+            res.send({ isAdmin: result?.role === 'admin' })
+
+        })
+
         //get all buyer user by role
-        app.get('/allbuyer', async (req, res) => {
+        app.get('/allbuyer', jwtVerify, verifyAdmin, async (req, res) => {
             const role = req.query.role;
             const query = { role: role }
             const result = await usersCollection.find(query).toArray()
@@ -146,7 +196,7 @@ async function run() {
 
 
         //get all seller user by role
-        app.get('/allseller', async (req, res) => {
+        app.get('/allseller', jwtVerify, verifyAdmin, async (req, res) => {
             const role = req.query.role;
             const query = { role: role }
             const result = await usersCollection.find(query).toArray()
@@ -198,7 +248,7 @@ async function run() {
         })
 
         //get my booking my email
-        app.get('/myBookings', jwtVerify, async (req, res) => {
+        app.get('/myBookings', jwtVerify, verifyBuyer, async (req, res) => {
 
             const decodedEmail = req.decoded.email
             const email = req.query.email;
@@ -210,6 +260,49 @@ async function run() {
 
             const query = { purchase_userMail: email }
             const result = await bookingsCollection.find(query).toArray()
+            res.send(result)
+        })
+
+        //create admin
+        app.put('/admin/:id', jwtVerify, verifyAdmin, async (req, res) => {
+
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true }
+            const updatedDoc = {
+
+                $set: {
+                    role: 'admin'
+                }
+            }
+
+            const result = await usersCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
+        })
+
+
+        //create verified seller tik
+        app.put('/seller/verify/:id', jwtVerify, verifyAdmin, async (req, res) => {
+
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const options = { upsert: true }
+            const updatedDoc = {
+
+                $set: {
+                    verify: '✔'
+                }
+            }
+
+            const result = await usersCollection.updateOne(filter, updatedDoc, options)
+            res.send(result)
+        })
+
+        app.delete('/deleteUser/:id', jwtVerify, verifyAdmin, async (req, res) => {
+
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(query)
             res.send(result)
         })
 
