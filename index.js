@@ -3,8 +3,11 @@ const app = express()
 const cors = require('cors')
 const jwt = require('jsonwebtoken');
 require('dotenv').config()
+const stripe = require("stripe")(process.env.STRIPE_SK);
+
 const port = process.env.PORT || 5000
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { query } = require('express');
 
 
 // middle ware 
@@ -64,6 +67,13 @@ async function run() {
 
         //create database for products booking
         const usersCollection = client.db('E-mobo-Db').collection('users')
+
+        //create database for products booking
+        const paymentCollection = client.db('E-mobo-Db').collection('payments')
+
+        //create database for products booking
+        const advertiseCollection = client.db('E-mobo-Db').collection('adverties')
+
 
         //verify admin
         const verifyAdmin = async (req, res, next) => {
@@ -137,6 +147,84 @@ async function run() {
             res.send(result)
         })
 
+        //create payment intent
+        app.post('/create-payment-intent', async (req, res) => {
+            const purchase = req.body;
+            const price = purchase.price;
+            const amount = price * 100;
+
+            const paymentIntent = await stripe.paymentIntents.create({
+                currency: "usd",
+                amount: amount,
+                "payment_method_types": [
+
+                    "card"
+                ]
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        })
+
+        //post payment data
+        app.post('/payemnts', async (req, res) => {
+
+            const payment = req.body
+            const result = await paymentCollection.insertOne(payment)
+
+            //update payment status in booking
+            const id = payment.purchasedId
+            const bookingFilter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transectionId
+                }
+            }
+            const updatedResult = await bookingsCollection.updateOne(bookingFilter, updatedDoc)
+
+            //update payment status to product
+            const productId = payment.product_id
+            const productFilter = { _id: ObjectId(productId) }
+            const upDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transectionId
+                }
+            }
+
+            const updateProduct = await productsCollection.updateOne(productFilter, upDoc)
+
+
+            //update payemnt status to advertise
+            const advertiseId = payment.product_id
+            const adFilter = { _id: ObjectId(advertiseId) }
+            const updtDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transectionId
+                }
+            }
+
+            const updateAdProduct = await advertiseCollection.updateOne(adFilter, updtDoc)
+
+
+            res.send(result)
+
+        })
+
+        //post ad data
+        app.post('/adproduct', jwtVerify, verifySeller, async (req, res) => {
+
+            const ad = req.body
+            const result = await advertiseCollection.insertOne(ad)
+            res.send(result)
+
+        })
+
+
+
+
 
         //get jwt by user email
         app.get('/jwt', async (req, res) => {
@@ -183,6 +271,16 @@ async function run() {
             const query = { email: email }
             const result = await usersCollection.findOne(query)
             res.send({ isAdmin: result?.role === 'admin' })
+
+        })
+
+        //get seller verified
+        app.get('/seller/verify/:email', async (req, res) => {
+
+            const email = req.params.email;
+            const query = { email: email }
+            const result = await usersCollection.findOne(query)
+            res.send({ isVerify: result?.verify === true })
 
         })
 
@@ -237,6 +335,16 @@ async function run() {
             res.send(result)
         })
 
+
+        //get a single product by id
+        app.get('/product/:id', async (req, res) => {
+
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await bookingsCollection.findOne(query)
+            res.send(result)
+        })
+
         //get all products under a seller
         app.get('/myproducts', jwtVerify, verifySeller, async (req, res) => {
 
@@ -255,6 +363,16 @@ async function run() {
             const result = await bookingsCollection.find(query).sort({ _id: -1 }).toArray()
             res.send(result)
         })
+
+        //get advertise item
+        app.get('/advertise', async (req, res) => {
+
+            const ad = req.body
+            const result = await advertiseCollection.find(ad).toArray()
+            res.send(result)
+
+        })
+
 
         //create admin
         app.put('/admin/:id', jwtVerify, verifyAdmin, async (req, res) => {
@@ -283,7 +401,7 @@ async function run() {
             const updatedDoc = {
 
                 $set: {
-                    verify: '✔'
+                    verify: true
                 }
             }
 
@@ -308,6 +426,36 @@ async function run() {
             const result = await productsCollection.deleteOne(query)
             res.send(result)
         })
+
+        //put products for advertise
+        app.put('/productsUpdate/:id', jwtVerify, verifySeller, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+
+                    advertise: true
+                }
+            }
+            const result = await productsCollection.updateOne(filter, updatedDoc)
+            res.send(result)
+        })
+
+        app.put('/reportProduct/:id', jwtVerify, verifyBuyer, async (req, res) => {
+
+            const id = req.params.id
+            const filter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+
+                    report: "reported"
+                }
+            }
+
+            const result = await productsCollection.updateOne(filter, updatedDoc)
+            res.send(result)
+        })
+
 
     }
     finally {
