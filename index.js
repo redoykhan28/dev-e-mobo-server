@@ -365,7 +365,7 @@ async function run() {
         })
 
         //get advertise item
-        app.get('/advertise', async (req, res) => {
+        app.get('/advertise', jwtVerify, verifySeller, async (req, res) => {
 
             const ad = req.body
             const result = await advertiseCollection.find(ad).toArray()
