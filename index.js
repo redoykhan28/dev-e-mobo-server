@@ -189,24 +189,12 @@ async function run() {
             const upDoc = {
                 $set: {
                     paid: true,
-                    transactionId: payment.transectionId
+                    transactionId: payment.transectionId,
+                    advertise: "false"
                 }
             }
 
             const updateProduct = await productsCollection.updateOne(productFilter, upDoc)
-
-
-            //update payemnt status to advertise
-            const advertiseId = payment.product_id
-            const adFilter = { _id: ObjectId(advertiseId) }
-            const updtDoc = {
-                $set: {
-                    paid: true,
-                    transactionId: payment.transectionId
-                }
-            }
-
-            const updateAdProduct = await advertiseCollection.updateOne(adFilter, updtDoc)
 
 
             res.send(result)
@@ -365,10 +353,11 @@ async function run() {
         })
 
         //get advertise item
-        app.get('/advertise', jwtVerify, verifySeller, async (req, res) => {
+        app.get('/vertise/items', async (req, res) => {
 
-            const ad = req.body
-            const result = await advertiseCollection.find(ad).toArray()
+            const ad = req.query.advertise
+            const query = { advertise: ad }
+            const result = await productsCollection.find(query).toArray();
             res.send(result)
 
         })
@@ -431,13 +420,14 @@ async function run() {
         app.put('/productsUpdate/:id', jwtVerify, verifySeller, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: ObjectId(id) }
+            const options = { upsert: true }
             const updatedDoc = {
                 $set: {
 
-                    advertise: true
+                    advertise: "true"
                 }
             }
-            const result = await productsCollection.updateOne(filter, updatedDoc)
+            const result = await productsCollection.updateOne(filter, updatedDoc, options)
             res.send(result)
         })
 
